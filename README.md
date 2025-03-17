@@ -41,8 +41,8 @@ require("lspconfig").pylsp.setup {
 
 ## Alternatives and inspiration
 
-[removestar](https://www.asmeurer.com/removestar/) provides a [Pyflakes](https://github.com/PyCQA/pyflakes) based tool.
-
-[SurpriseDog's scripts](https://github.com/SurpriseDog/Star-Wrangler) are a great source of inspiration.
-
-`pylsp` has a built-in `rope_autoimport` plugin utilizing [Rope](https://github.com/python-rope/rope)'s `autoimport` module.
+- [removestar](https://www.asmeurer.com/removestar/) provides a [Pyflakes](https://github.com/PyCQA/pyflakes) based
+tool.
+- [SurpriseDog's scripts](https://github.com/SurpriseDog/Star-Wrangler) are a great source of inspiration.
+- `pylsp` itself has a built-in `rope_autoimport` plugin utilizing [Rope](https://github.com/python-rope/rope)'s
+`autoimport` module.
