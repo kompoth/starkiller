@@ -57,7 +57,7 @@ def pylsp_code_actions(
                 workspace_edit = WorkspaceEdit(changes={document.uri: [text_edit]})
                 code_actions.append(
                     CodeAction(
-                        title="Starkiller: Replace * with imported names",
+                        title="Starkiller: Replace * with explicit names",
                         kind=CodeActionKind.SourceOrganizeImports,
                         edit=workspace_edit,
                     ),

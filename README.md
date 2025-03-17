@@ -11,10 +11,12 @@ The initial goal was to create a simple code formatter to get rid of star import
 ## Python LSP Server plugin
 
 This package contains a plugin for [python-lsp-server](https://github.com/python-lsp/python-lsp-server) that provides
-code actions to refactor import statements:
+the following code actions to refactor import statements:
 
-- `Replace * with imported names` - suggested for `from <module> import *` statements. 
-- At least one more upcoming.
+- `Replace * with explicit names` - suggested for `from ... import *` statements. 
+- [wip] `Replace * import with module import` - suggested for `from ... import *` statements. 
+- [wip] `Replace from import with module import` - suggested for `from ... import ...` statements.
+- [wip] `Replace module import with from import` - suggested for `import ...` statements.
 
 To enable the plugin install Starkiller in the same virtual environment as `python-lsp-server` with `[pylsp]` optional
 dependency. E.g. with `pipx`: 
