@@ -54,7 +54,7 @@ def pylsp_code_actions(
             # TODO: code action to remove import at all
             return []
 
-        names_to_import = project.get_definitions(from_module, set(undefined_names))
+        names_to_import = project.find_definitions(from_module, set(undefined_names))
         if not names_to_import:
             return []
 

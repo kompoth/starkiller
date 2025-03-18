@@ -15,6 +15,7 @@ pylsp = [
 
 [dependency-groups]
 dev = [
+    "pytest-stub>=1.1.0",
     "pytest>=8.3.5",
 ]
 
