@@ -38,7 +38,7 @@ def _get_module_spec(module_name: str, paths: list[str]) -> ModuleSpec | None:
     return None
 
 
-class SKProject(Project):
+class StarkillerProject(Project):
     """Wraps `jedi.Project` enabling import refactoring features."""
 
     def find_module(self, module_name: str) -> ModuleType | None:

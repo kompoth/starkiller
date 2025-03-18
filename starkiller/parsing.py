@@ -10,27 +10,6 @@ from dataclasses import dataclass
 BUILTINS = set(dir(builtins))
 
 
-def check_line_for_star_import(line: str) -> str | None:
-    """Checks if given line of python code contains star import.
-
-    Args:
-        line: Line of code to check
-
-    Returns:
-        Module name or None
-    """
-    body = ast.parse(line).body
-
-    if len(body) == 0 or not isinstance(body[0], ast.ImportFrom):
-        return None
-
-    statement = body[0]
-    match statement.names:
-        case [ast.alias(name="*")]:
-            return statement.module
-    return None
-
-
 @dataclass(frozen=True)
 class ImportedName:
     """Imported name structure."""
@@ -53,33 +32,6 @@ class _LocalScope:
     name: str
     body: list[ast.stmt]
     args: list[str] | None = None
-
-
-def parse_module(
-    code: str,
-    find_definitions: set[str] | None = None,
-    *,
-    check_internal_scopes: bool = False,
-) -> ModuleNames:
-    """Parse Python source and find all definitions, undefined symbols usages and imported names.
-
-    Args:
-        code: Source code to be parsed
-        find_definitions: Optional set of definitions to look for
-        check_internal_scopes: If False, won't parse function and classes definitions
-
-    Returns:
-        ModuleNames object
-    """
-    visitor = _ScopeVisitor(find_definitions=find_definitions)
-    visitor.visit(ast.parse(code))
-    if check_internal_scopes:
-        visitor.visit_internal_scopes()
-    return ModuleNames(
-        undefined=visitor.undefined,
-        defined=visitor.defined,
-        import_map=visitor.import_map,
-    )
 
 
 class _ScopeVisitor(ast.NodeVisitor):
@@ -179,7 +131,7 @@ class _ScopeVisitor(ast.NodeVisitor):
     def visit_Import(self, node: ast.Import) -> None:
         for name in node.names:
             self.record_import_from_module(
-                module_name=name.name or ".",
+                module_name=name.name,
                 name=name.name,
                 alias=name.asname,
             )
@@ -268,3 +220,68 @@ class _ScopeVisitor(ast.NodeVisitor):
 
     def visit_AsyncFunctionDef(self, node: ast.AsyncFunctionDef) -> None:
         self._visit_callable(node)
+
+
+def parse_module(
+    code: str,
+    find_definitions: set[str] | None = None,
+    *,
+    check_internal_scopes: bool = False,
+) -> ModuleNames:
+    """Parse Python source and find all definitions, undefined symbols usages and imported names.
+
+    Args:
+        code: Source code to be parsed
+        find_definitions: Optional set of definitions to look for
+        check_internal_scopes: If False, won't parse function and classes definitions
+
+    Returns:
+        ModuleNames object
+    """
+    visitor = _ScopeVisitor(find_definitions=find_definitions)
+    visitor.visit(ast.parse(code))
+    if check_internal_scopes:
+        visitor.visit_internal_scopes()
+    return ModuleNames(
+        undefined=visitor.undefined,
+        defined=visitor.defined,
+        import_map=visitor.import_map,
+    )
+
+
+def find_from_import(line: str) -> tuple[str, list[ImportedName]] | tuple[None, None]:
+    """Checks if given line of python code contains from import statement.
+
+    Args:
+        line: Line of code to check
+
+    Returns:
+        Module name and ImportedName list or `(None, None)`
+    """
+    body = ast.parse(line).body
+    if len(body) == 0 or not isinstance(body[0], ast.ImportFrom):
+        return None, None
+
+    node = body[0]
+    module_name = "." * node.level
+    if node.module:
+        module_name += node.module
+    imported_names = [ImportedName(name=name.name, alias=name.asname) for name in node.names]
+    return module_name, imported_names
+
+
+def find_import(line: str) -> list[ImportedName] | None:
+    """Checks if given line of python code contains import statement.
+
+    Args:
+        line: Line of code to check
+
+    Returns:
+        ImportedName or None
+    """
+    body = ast.parse(line).body
+    if len(body) == 0 or not isinstance(body[0], ast.Import):
+        return None
+
+    node = body[0]
+    return [ImportedName(name=name.name, alias=name.asname) for name in node.names]
