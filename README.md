@@ -2,16 +2,16 @@
 
 **Work in progress**
 
-A wrapper around [Jedi](https://jedi.readthedocs.io/en/latest/index.html)'s `Project` that helps to analyse and refactor
-imports in your Python code. Starkiller aims to be as static as possible, i.e. to analyse source code without actually
-executing it.
+A package and [python-lsp-server](https://github.com/python-lsp/python-lsp-server) plugin that helps to analyze and
+refactor imports in your Python code.
+Starkiller aims to be static, i.e. to analyse source code without actually executing it, and fast, thanks to built-in
+`ast` module.
 
-The initial goal was to create a simple code formatter to get rid of star imports, hence the choice of the package name.
+The initial goal was to create a simple linter to get rid of star imports, hence the choice of the package name.
 
 ## Python LSP Server plugin
 
-This package contains a plugin for [python-lsp-server](https://github.com/python-lsp/python-lsp-server) that provides
-the following code actions to refactor import statements:
+The `pylsp` plugin provides the following code actions to refactor import statements:
 
 - `Replace * with explicit names` - suggested for `from ... import *` statements. 
 - [wip] `Replace * import with module import` - suggested for `from ... import *` statements. 
@@ -41,10 +41,11 @@ require("lspconfig").pylsp.setup {
 }
 ```
 
-## Alternatives and inspiration
+## Acknowledgements and inspiration
 
-- [removestar](https://www.asmeurer.com/removestar/) provides a [Pyflakes](https://github.com/PyCQA/pyflakes) based
-tool.
+- Starkiller uses [Jedi](https://jedi.readthedocs.io/en/latest/index.html) to detect Python environments. 
+- [removestar](https://www.asmeurer.com/removestar/) is a [Pyflakes](https://github.com/PyCQA/pyflakes) based tool with
+similar objectives.
 - [SurpriseDog's scripts](https://github.com/SurpriseDog/Star-Wrangler) are a great source of inspiration.
 - `pylsp` itself has a built-in `rope_autoimport` plugin utilizing [Rope](https://github.com/python-rope/rope)'s
 `autoimport` module.

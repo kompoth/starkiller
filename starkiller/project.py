@@ -6,7 +6,8 @@ from importlib.machinery import ModuleSpec
 from importlib.util import module_from_spec, spec_from_file_location
 from types import ModuleType
 
-from jedi import Project  # type: ignore
+# TODO: generate Jedi stub files
+from jedi import create_environment, find_system_environments  # type: ignore
 
 from starkiller.parsing import parse_module
 
@@ -38,8 +39,21 @@ def _get_module_spec(module_name: str, paths: list[str]) -> ModuleSpec | None:
     return None
 
 
-class StarkillerProject(Project):
-    """Wraps `jedi.Project` enabling import refactoring features."""
+class StarkillerProject:
+    """Class to analyse imports in a Python project."""
+
+    def __init__(self, project_path: pathlib.Path | str, env_path: pathlib.Path | str | None = None) -> None:
+        """Inits project.
+
+        Args:
+            project_path: Path to the project root.
+            env_path: Optional path to the project virtual environment.
+        """
+        self.path = pathlib.Path(project_path)
+        if env_path:
+            self.env = create_environment(path=env_path)
+        else:
+            self.env = next(find_system_environments())
 
     def find_module(self, module_name: str) -> ModuleType | None:
         """Get module object by its name.
@@ -62,8 +76,7 @@ class StarkillerProject(Project):
 
     def _find_module(self, module_name: str, parent_spec: ModuleSpec | None) -> ModuleSpec | None:
         if parent_spec is None:
-            env = self.get_environment()
-            env_sys_paths = env.get_sys_path()[::-1]
+            env_sys_paths = self.env.get_sys_path()[::-1]
             paths = [self.path, *env_sys_paths]
         elif parent_spec.submodule_search_locations is None:
             return None
@@ -75,11 +88,7 @@ class StarkillerProject(Project):
             spec.name = parent_spec.name + "." + spec.name
         return spec
 
-    def find_definitions(
-        self,
-        module_name: str,
-        find_definitions: set[str],
-    ) -> set[str]:
+    def find_definitions(self, module_name: str, find_definitions: set[str]) -> set[str]:
         """Find definitions in module or package.
 
         Args:
@@ -130,7 +139,6 @@ class StarkillerProject(Project):
                 found_definitions.update(submodule_definitions)
             else:
                 imported_from_submodule = {iname.name for iname in inames}
-                print(f"{submodule_name} - {imported_from_submodule}")
                 found_definitions.update(imported_from_submodule & find_in_submod)
 
         return found_definitions

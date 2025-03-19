@@ -93,8 +93,9 @@ class _ScopeVisitor(ast.NodeVisitor):
 
     @contextmanager
     def definition_context(self) -> Generator[None]:
-        # We use context to control new names treatment: should we record them as definitions or presume they could be
-        # undefined.
+        # This is not thread safe! Consider using thead local data to store definition context state.
+        # Context manager is used in this class to control new names treatment: either to record them as definitions or
+        # as possible usages of undefined names.
         self._in_definition_context = True
         yield
         self._in_definition_context = False
