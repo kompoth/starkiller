@@ -10,6 +10,7 @@ dependencies = [
 
 [project.optional-dependencies]
 pylsp = [
+    "lsprotocol>=2023.0.1",
     "python-lsp-server>=1.12.2",
 ]
 

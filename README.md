@@ -14,7 +14,7 @@ The initial goal was to create a simple linter to get rid of star imports, hence
 The `pylsp` plugin provides the following code actions to refactor import statements:
 
 - `Replace * with explicit names` - suggested for `from ... import *` statements. 
-- [wip] `Replace * import with module import` - suggested for `from ... import *` statements. 
+- `Replace * import with module import` - suggested for `from ... import *` statements. 
 - [wip] `Replace from import with module import` - suggested for `from ... import ...` statements.
 - [wip] `Replace module import with from import` - suggested for `import ...` statements.
 
@@ -34,16 +34,19 @@ require("lspconfig").pylsp.setup {
     settings = {
         pylsp = {
             plugins = {
-                starkiller = {enabled = true},
+                starkiller = { enabled = true },
+                aliases = {
+                    numpy = "np",
+                    [ "matplotlib.pyplot" ] = "plt",
+                }
             }
         }
     }
 }
 ```
 
-## Acknowledgements and inspiration
+## Alternatives and inspiration
 
-- Starkiller uses [Jedi](https://jedi.readthedocs.io/en/latest/index.html) to detect Python environments. 
 - [removestar](https://www.asmeurer.com/removestar/) is a [Pyflakes](https://github.com/PyCQA/pyflakes) based tool with
 similar objectives.
 - [SurpriseDog's scripts](https://github.com/SurpriseDog/Star-Wrangler) are a great source of inspiration.
