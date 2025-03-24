@@ -51,7 +51,7 @@ class StarkillerProject:
         """
         self.path = pathlib.Path(project_path)
         if env_path:
-            self.env = create_environment(path=env_path)
+            self.env = create_environment(path=env_path, safe=False)
         else:
             self.env = next(find_system_environments())
 
