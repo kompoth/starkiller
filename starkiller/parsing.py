@@ -232,12 +232,12 @@ def parse_module(
     """Parse Python source and find all definitions, undefined symbols usages and imported names.
 
     Args:
-        code: Source code to be parsed
-        find_definitions: Optional set of definitions to look for
-        check_internal_scopes: If False, won't parse function and classes definitions
+        code: Source code to be parsed.
+        find_definitions: Optional set of definitions to look for.
+        check_internal_scopes: If False, won't parse function and classes definitions.
 
     Returns:
-        ModuleNames object
+        ModuleNames object.
     """
     visitor = _ScopeVisitor(find_definitions=find_definitions)
     visitor.visit(ast.parse(code))
@@ -254,10 +254,10 @@ def find_from_import(line: str) -> tuple[str, list[ImportedName]] | tuple[None, 
     """Checks if given line of python code contains from import statement.
 
     Args:
-        line: Line of code to check
+        line: Line of code to check.
 
     Returns:
-        Module name and ImportedName list or `(None, None)`
+        Module name and ImportedName list or `(None, None)`.
     """
     body = ast.parse(line).body
     if len(body) == 0 or not isinstance(body[0], ast.ImportFrom):
@@ -275,10 +275,10 @@ def find_import(line: str) -> list[ImportedName] | None:
     """Checks if given line of python code contains import statement.
 
     Args:
-        line: Line of code to check
+        line: Line of code to check.
 
     Returns:
-        ImportedName or None
+        ImportedName or None.
     """
     body = ast.parse(line).body
     if len(body) == 0 or not isinstance(body[0], ast.Import):
