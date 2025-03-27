@@ -10,12 +10,15 @@ dependencies = [
 
 [project.optional-dependencies]
 pylsp = [
+    "lsprotocol>=2023.0.1",
     "python-lsp-server>=1.12.2",
 ]
 
 [dependency-groups]
 dev = [
+    "pytest-stub>=1.1.0",
     "pytest>=8.3.5",
+    "pytest-virtualenv>=1.8.1",
 ]
 
 [project.entry-points.pylsp]

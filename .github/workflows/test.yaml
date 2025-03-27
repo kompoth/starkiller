@@ -1,0 +1,47 @@
+name: Test
+on:
+  pull_request:
+    branches: [ main ]
+  push:
+    branches: [ main ]
+
+jobs:
+  lint:
+    name: Check with linter
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install ruff
+      - name: Run Ruff
+        run: ruff check --output-format=github .
+
+  test:
+    name: Run smoke tests 
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version:
+          - "3.12"
+          - "3.13"
+    env:
+      UV_PYTHON: ${{ matrix.python-version }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+          cache-dependency-glob: ""
+      - name: Install the project
+        run: uv sync --all-extras --dev
+      - name: Run tests
+        run: uv run pytest
