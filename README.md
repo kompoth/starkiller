@@ -1,5 +1,7 @@
 # Starkiller
 
+[![CI status](https://github.com/kompoth/starkiller/actions/workflows/ci.yaml/badge.svg)](https://github.com/kompoth/starkiller/actions)
+
 **Work in progress**
 
 A package and [python-lsp-server](https://github.com/python-lsp/python-lsp-server) plugin that helps to analyze and
@@ -19,7 +21,7 @@ The `pylsp` plugin provides the following code actions to refactor import statem
 - [wip] `Replace module import with from import` - suggested for `import ...` statements.
 
 To enable the plugin install Starkiller in the same virtual environment as `python-lsp-server` with `[pylsp]` optional
-dependency. E.g. with `pipx`: 
+dependency. E.g., with `pipx`: 
 
 ```bash
 uv build

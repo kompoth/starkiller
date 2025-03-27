@@ -76,7 +76,7 @@ def pylsp_code_actions(
 
     if from_module and imported_names and any(name.name == "*" for name in imported_names):
         # Star import statement code actions
-        undefined_names = parse_module(document.source).undefined
+        undefined_names = parse_module(document.source, check_internal_scopes=True).undefined
         if not undefined_names:
             # TODO: code action to remove import at all
             return []
