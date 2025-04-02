@@ -19,6 +19,7 @@ The `pylsp` plugin provides the following code actions to refactor import statem
 - `Replace * import with module import` - suggested for `from ... import *` statements. 
 - [wip] `Replace from import with module import` - suggested for `from ... import ...` statements.
 - [wip] `Replace module import with from import` - suggested for `import ...` statements.
+- [wip] `Remove unnecessary import` - suggested for `import` statements with unused names. 
 
 To enable the plugin install Starkiller in the same virtual environment as `python-lsp-server` with `[pylsp]` optional
 dependency. E.g., with `pipx`: 
