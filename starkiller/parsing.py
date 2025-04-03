@@ -2,12 +2,11 @@
 """Utilities to parse Python code."""
 
 import ast
-import builtins
 from collections.abc import Generator
 from contextlib import contextmanager
 from dataclasses import dataclass
 
-BUILTINS = set(dir(builtins))
+from starkiller.utils import BUILTIN_FUNCTIONS
 
 
 @dataclass(frozen=True)
@@ -117,7 +116,7 @@ class _ScopeVisitor(ast.NodeVisitor):
 
     def _record_undefined_name(self, name: str) -> None:
         # Record only uninitialised uses
-        if name not in (self._defined | self._imported | BUILTINS):
+        if name not in (self._defined | self._imported | BUILTIN_FUNCTIONS):
             self._undefined.add(name)
 
     def record_name(self, name: str) -> None:

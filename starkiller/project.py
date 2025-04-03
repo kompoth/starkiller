@@ -9,7 +9,8 @@ from types import ModuleType
 # TODO: generate Jedi stub files
 from jedi import create_environment, find_system_environments  # type: ignore
 
-from starkiller.parsing import parse_module
+from starkiller.parsing import ImportedName, parse_module
+from starkiller.utils import BUILTIN_FUNCTIONS
 
 
 def _get_module_spec(module_name: str, paths: list[str]) -> ModuleSpec | None:
@@ -98,47 +99,69 @@ class StarkillerProject:
         Returns:
             Set of found names
         """
-        module_short_name = module_name.split(".")[-1]
+        find_definitions -= BUILTIN_FUNCTIONS
+        found_definitions: set[str]
+
+        # Find the module location
         module = self.find_module(module_name)
         if module is None:
             return set()
 
+        # Scan the module file for defintions
         module_path = pathlib.Path(str(module.__file__))
         with module_path.open() as module_file:
             names = parse_module(module_file.read(), find_definitions)
         found_definitions = names.defined
 
-        # There is no point in continuing if the module is not a package
-        if not hasattr(module, "__path__"):
-            return found_definitions
-
         # If package, its submodules should be importable
-        find_in_package = find_definitions - found_definitions
-        for name in find_in_package:
-            possible_submodule_name = module_name + "." + name
-            submodule = self.find_module(possible_submodule_name)
-            if submodule:
-                found_definitions.add(name)
+        if hasattr(module, "__path__"):
+            found_definitions.update(self._find_submodules(module_name, find_definitions - found_definitions))
 
+        # Follow imports
         for imod, inames in names.import_map.items():
             # Check what do we have left
             find_in_submod = find_definitions - found_definitions
             if not find_in_submod:
                 return found_definitions
 
-            is_star = any(iname.name == "*" for iname in inames)
-            is_relative_internal = imod.startswith(".") and not imod.startswith("..")
-            is_internal = imod.startswith((module_short_name, module_name)) or is_relative_internal
-            if not is_internal:
-                continue
+            found_definitions.update(self._find_definitions_follow_import(module_name, imod, inames, find_in_submod))
 
-            submodule_name = module_name + imod if is_relative_internal else imod
+        return found_definitions
 
-            if is_star:
-                submodule_definitions = self.find_definitions(submodule_name, find_in_submod)
-                found_definitions.update(submodule_definitions)
-            else:
-                imported_from_submodule = {iname.name for iname in inames}
-                found_definitions.update(imported_from_submodule & find_in_submod)
+    def _find_submodules(self, module_name: str, find_submodules: set[str]) -> set[str]:
+        found_submodules: set[str] = set()
+
+        for name in find_submodules:
+            possible_submodule_name = module_name + "." + name
+            submodule = self.find_module(possible_submodule_name)
+            if submodule:
+                found_submodules.add(name)
+
+        return found_submodules
+
+    def _find_definitions_follow_import(
+        self,
+        module_name: str,
+        imodule_name: str,
+        inames: set[ImportedName],
+        find_definitions: set[str]
+    ) -> set[str]:
+        module_short_name = module_name.split(".")[-1]
+        found_definitions: set[str] = set()
+
+        is_star = any(iname.name == "*" for iname in inames)
+        is_relative_internal = imodule_name.startswith(".") and not imodule_name.startswith("..")
+        is_internal = imodule_name.startswith((module_short_name, module_name)) or is_relative_internal
+        if not is_internal:
+            pass
+
+        full_imodule_name = module_name + imodule_name if is_relative_internal else imodule_name
+
+        if is_star:
+            submodule_definitions = self.find_definitions(full_imodule_name, find_definitions)
+            found_definitions.update(submodule_definitions)
+        else:
+            imported_from_submodule = {iname.name for iname in inames}
+            found_definitions.update(imported_from_submodule & find_definitions)
 
         return found_definitions
