@@ -29,8 +29,7 @@ To enable the plugin install Starkiller in the same virtual environment as `pyth
 dependency. E.g., with `pipx`: 
 
 ```bash
-uv build
-pipx inject python-lsp-server ./dist/starkiller-<VERSION>-py3-none-any.whl[pylsp]
+pipx inject python-lsp-server starkiller[pylsp]
 ```
 
 The plugin is enabled just the same way as any other `pylsp` plugin. E.g., in Neovim via
