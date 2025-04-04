@@ -4,12 +4,16 @@
 
 **Work in progress**
 
-A package and [python-lsp-server](https://github.com/python-lsp/python-lsp-server) plugin that helps to analyze and
-refactor imports in your Python code.
+An import refactoring package and [python-lsp-server](https://github.com/python-lsp/python-lsp-server) plugin.
 Starkiller aims to be static, i.e. to analyse source code without actually executing it, and fast, thanks to built-in
 `ast` module.
 
 The initial goal was to create a simple linter to get rid of star imports, hence the choice of the package name.
+
+## Using as a package
+
+Starkiller can be used as a package for import refactoring. Each public method and class has a docstring explaining
+what it does and how to use it.
 
 ## Python LSP Server plugin
 
@@ -19,6 +23,7 @@ The `pylsp` plugin provides the following code actions to refactor import statem
 - `Replace * import with module import` - suggested for `from ... import *` statements. 
 - [wip] `Replace from import with module import` - suggested for `from ... import ...` statements.
 - [wip] `Replace module import with from import` - suggested for `import ...` statements.
+- [wip] `Remove unnecessary import` - suggested for `import` statements with unused names. 
 
 To enable the plugin install Starkiller in the same virtual environment as `python-lsp-server` with `[pylsp]` optional
 dependency. E.g., with `pipx`: 

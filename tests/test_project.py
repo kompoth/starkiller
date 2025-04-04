@@ -3,11 +3,27 @@ from pytest_virtualenv import VirtualEnv  # type: ignore
 from starkiller.project import StarkillerProject
 
 
-def test_asyncio_definitions() -> None:
-    project = StarkillerProject(".")  # default project and env
+def test_asyncio_definitions(virtualenv: VirtualEnv) -> None:
+    project = StarkillerProject(virtualenv.workspace)
     look_for = {"gather", "run", "TaskGroup"}
     names = project.find_definitions("asyncio", look_for)
     assert names == look_for
+
+
+def test_time_definitions(virtualenv: VirtualEnv) -> None:
+    project = StarkillerProject(virtualenv.workspace)
+    look_for = {"time", "sleep"}
+    names = project.find_definitions("time", look_for)
+    assert names == look_for
+
+
+def test_fastapi_definitions(virtualenv: VirtualEnv) -> None:
+    virtualenv.install_package("fastapi==0.115.12")
+    project = StarkillerProject(virtualenv.workspace, env_path=virtualenv.virtualenv)
+
+    find_in_fastapi = {"FastAPI", "Response", "status"}
+    names = project.find_definitions("fastapi", find_in_fastapi)
+    assert names == find_in_fastapi
 
 
 def test_numpy_definitions(virtualenv: VirtualEnv) -> None:
