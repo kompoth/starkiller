@@ -1,4 +1,3 @@
-import pytest
 from pytest_virtualenv import VirtualEnv  # type: ignore
 
 from starkiller.project import StarkillerProject
@@ -11,7 +10,6 @@ def test_asyncio_definitions(virtualenv: VirtualEnv) -> None:
     assert names == look_for
 
 
-@pytest.mark.skip(reason="Need to resolve #3 first")
 def test_time_definitions(virtualenv: VirtualEnv) -> None:
     project = StarkillerProject(virtualenv.workspace)
     look_for = {"time", "sleep"}
