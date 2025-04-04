@@ -2,8 +2,8 @@ import dataclasses
 import logging
 import pathlib
 
-from lsprotocol.converters import get_converter
-from lsprotocol.types import (
+from lsprotocol.converters import get_converter  # type: ignore
+from lsprotocol.types import (  # type: ignore
     CodeAction,
     CodeActionKind,
     Position,
@@ -74,27 +74,28 @@ def pylsp_code_actions(
     from_module, imported_names = find_from_import(line)
     imported_modules = find_import(line)
 
-    if from_module and imported_names and any(name.name == "*" for name in imported_names):
-        # Star import statement code actions
-        undefined_names = parse_module(document.source, check_internal_scopes=True).undefined
-        if not undefined_names:
-            # TODO: code action to remove import at all
-            return []
+    if from_module and imported_names:
+        if any(name.name == "*" for name in imported_names):
+            # Star import statement code actions
+            undefined_names = parse_module(document.source, check_internal_scopes=True).undefined
+            if not undefined_names:
+                code_actions.append(remove_unnecessary_import(document, line_range))
+                return converter.unstructure(code_actions)
 
-        names_to_import = project.find_definitions(from_module, set(undefined_names))
-        if not names_to_import:
-            # TODO: code action to remove import at all
-            return []
+            externaly_defined = project.find_definitions(from_module, set(undefined_names))
+            if not externaly_defined:
+                code_actions.append(remove_unnecessary_import(document, line_range))
+                return converter.unstructure(code_actions)
 
-        code_actions.extend(
-            [
-                replace_star_with_names(document, from_module, names_to_import, line_range),
-                replace_star_w_module(document, from_module, names_to_import, line_range, aliases),
-            ],
-        )
-    elif from_module:
-        # TODO: From import (without star) statement code actions
-        pass
+            code_actions.extend(
+                [
+                    replace_star_w_names(document, from_module, externaly_defined, line_range),
+                    replace_star_w_module(document, from_module, externaly_defined, line_range, aliases),
+                ],
+            )
+        else:
+            # TODO: From import (without star) statement code actions
+            pass
     elif imported_modules:
         # TODO: Import statement code actions
         pass
@@ -102,7 +103,7 @@ def pylsp_code_actions(
     return converter.unstructure(code_actions)
 
 
-def replace_star_with_names(
+def replace_star_w_names(
     document: Document,
     from_module: str,
     names: set[str],
@@ -143,6 +144,29 @@ def replace_star_w_module(
     workspace_edit = WorkspaceEdit(changes={document.uri: text_edits})
     return CodeAction(
         title="Starkiller: Replace * import with module import",
+        kind=CodeActionKind.SourceOrganizeImports,
+        edit=workspace_edit,
+    )
+
+
+def remove_unnecessary_import(
+    document: Document,
+    import_line_range: Range,
+) -> CodeAction:
+    import_line_num = import_line_range.start.line
+    import_line = document.lines[import_line_num]
+
+    if import_line != len(document.lines) - 1:
+        end = Position(line=import_line_num + 1, character=0)
+    else:
+        end = Position(line=import_line_num, character=len(import_line) - 1)
+
+    replace_range = Range(start=Position(line=import_line_num, character=0), end=end)
+    text_edit = TextEdit(range=replace_range, new_text="")
+
+    workspace_edit = WorkspaceEdit(changes={document.uri: [text_edit]})
+    return CodeAction(
+        title="Starkiller: Remove unnecessary import",
         kind=CodeActionKind.SourceOrganizeImports,
         edit=workspace_edit,
     )
