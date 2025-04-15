@@ -130,18 +130,20 @@ def get_ca_for_module_import(
 ) -> list[CodeAction]:
     parsed = parse_module(document.source, check_internal_scopes=True, collect_imported_attrs=True)
 
-    if len(parsed.imported_attr_usages) > 1:
+    if len(imported_modules) != 1:
+        # If there is a comma separated list, it probably must be splitted first
+        # manually or with some other tool like Ruff
         return []
 
-    imported_name = imported_modules[0]
-    used_attrs = parsed.imported_attr_usages.get(imported_name.alias or imported_name.name)
+    module = imported_modules[0]
+    used_attrs = parsed.imported_attr_usages.get(module.alias or module.name)
     if not used_attrs:
         return [get_ca_remove_unnecessary_import(document, line_range)]
 
-    text_edits = get_edits_replace_module_w_from(imported_name.name, used_attrs, line_range)
+    text_edits = get_edits_replace_module_w_from(module.name, used_attrs, line_range)
 
     for edit_range, new_value in get_attrs_as_names_edits(
-        document.source, imported_name.alias or imported_name.name, used_attrs
+        document.source, module.alias or module.name, used_attrs
     ):
         rename_range = Range(
             start=Position(line=edit_range.start.line, character=edit_range.start.char),

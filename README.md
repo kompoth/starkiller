@@ -21,9 +21,9 @@ The `pylsp` plugin provides the following code actions to refactor import statem
 
 - `Replace * with explicit names` - suggested for `from ... import *` statements. 
 - `Replace * import with module import` - suggested for `from ... import *` statements. 
-- [wip] `Replace from import with module import` - suggested for `from ... import ...` statements.
-- [wip] `Replace module import with from import` - suggested for `import ...` statements.
-- [wip] `Remove unnecessary import` - suggested for `import` statements with unused names. 
+- `Replace from import with module import` - suggested for `from ... import ...` statements.
+- `Replace module import with from import` - suggested for `import ...` statements.
+- `Remove unnecessary import` - suggested for `import` statements with unused names. 
 
 To enable the plugin install Starkiller in the same virtual environment as `python-lsp-server` with `[pylsp]` optional
 dependency. E.g., with `pipx`: 
@@ -51,6 +51,20 @@ require("lspconfig").pylsp.setup {
     }
 }
 ```
+
+### Comma separated package imports
+
+Multiple package imports like in the following example do not trigger any Code Actions right now:
+
+```python
+import os, sys
+```
+
+This is hard to understand which import the user wants to fix here: `os`, `sys` or both. Splitting imports to different
+lines will help, but the user has to do it manually or with some other tool like [Ruff](https://docs.astral.sh/ruff/).
+Starkiller is not a code formatter and should not handle import splitting.
+
+At some point this might change. For example, a separate Code Action for each package could be suggested.
 
 ## Alternatives and inspiration
 
