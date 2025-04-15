@@ -24,6 +24,7 @@ class ModuleNames:
     undefined: set[str]
     defined: set[str]
     import_map: dict[str, set[ImportedName]]
+    imported_attr_usages: dict[str, set[str]]
 
 
 @dataclass(frozen=True)
@@ -34,22 +35,31 @@ class _LocalScope:
 
 
 class _ScopeVisitor(ast.NodeVisitor):
-    def __init__(self, find_definitions: set[str] | None = None) -> None:
+    def __init__(self, find_definitions: set[str] | None = None, *, collect_imported_attrs: bool = False) -> None:
         super().__init__()
+
         # Names that were used but never initialized in this module
         self._undefined: set[str] = set()
+
         # Names initialized in this module
         self._defined: set[str] = set()
+
         # Names imported from elsewhere
         self._import_map: dict[str, set[ImportedName]] = {}
         self._imported: set[str] = set()
+
         # Stop iteration on finding all of these names
         self._find_definitions = None if find_definitions is None else dict.fromkeys(find_definitions, False)
+
         # Internal scopes must be checked after visiting the top level
         self._internal_scopes: list[_LocalScope] = []
 
         # How to treat ast.Name: if True, this might be a definition
         self._in_definition_context = False
+
+        # If True, will record attribute usages of ast.Name nodes
+        self._collect_imported_attrs = collect_imported_attrs
+        self._attr_usages: dict[str, set[str]] = {}
 
     def visit(self, node: ast.AST) -> None:
         if self._find_definitions and all(self._find_definitions.values()):
@@ -58,13 +68,14 @@ class _ScopeVisitor(ast.NodeVisitor):
 
     def visit_internal_scopes(self) -> None:
         for scope in self._internal_scopes:
-            scope_visitor = _ScopeVisitor(find_definitions=None)
+            scope_visitor = _ScopeVisitor(find_definitions=None, collect_imported_attrs=self._collect_imported_attrs)
 
             # Known names
             scope_visitor._defined = self._defined.copy()
             if scope.args:
                 scope_visitor._defined.update(scope.args)
             scope_visitor._import_map = self._import_map.copy()
+            scope_visitor._imported = self._imported.copy()
 
             # Visit scope body and all internal scopes
             for scope_node in scope.body:
@@ -73,6 +84,7 @@ class _ScopeVisitor(ast.NodeVisitor):
 
             # Update upper scope undefined names set
             self._undefined.update(scope_visitor.undefined)
+            self._attr_usages.update(scope_visitor.imported_attr_usages)
 
     @property
     def defined(self) -> set[str]:
@@ -89,6 +101,10 @@ class _ScopeVisitor(ast.NodeVisitor):
     @property
     def import_map(self) -> dict[str, set[ImportedName]]:
         return self._import_map.copy()
+
+    @property
+    def imported_attr_usages(self) -> dict[str, set[str]]:
+        return {module: attrs for module, attrs in self._attr_usages.items() if module in self._imported}
 
     @contextmanager
     def definition_context(self) -> Generator[None]:
@@ -156,7 +172,7 @@ class _ScopeVisitor(ast.NodeVisitor):
 
     def visit_Call(self, node: ast.Call) -> None:
         # Called a function, not an attribute method
-        if isinstance(node.func, ast.Name):
+        if isinstance(node.func, ast.Name | ast.Attribute):
             self.visit(node.func)
 
         # Values passed as arguments
@@ -169,6 +185,9 @@ class _ScopeVisitor(ast.NodeVisitor):
         owner = node.value
         if isinstance(owner, ast.Attribute | ast.Call | ast.Name):
             self.visit(owner)
+
+        if isinstance(owner, ast.Name) and self._collect_imported_attrs:
+            self._attr_usages.setdefault(owner.id, set()).add(node.attr)
 
     def visit_ClassDef(self, node: ast.ClassDef) -> None:
         self._record_definition(node.name)
@@ -227,6 +246,7 @@ def parse_module(
     find_definitions: set[str] | None = None,
     *,
     check_internal_scopes: bool = False,
+    collect_imported_attrs: bool = False,
 ) -> ModuleNames:
     """Parse Python source and find all definitions, undefined symbols usages and imported names.
 
@@ -234,11 +254,12 @@ def parse_module(
         code: Source code to be parsed.
         find_definitions: Optional set of definitions to look for.
         check_internal_scopes: If False, won't parse function and classes definitions.
+        collect_imported_attrs: If True, will record attribute usages of ast.Name nodes.
 
     Returns:
         ModuleNames object.
     """
-    visitor = _ScopeVisitor(find_definitions=find_definitions)
+    visitor = _ScopeVisitor(find_definitions=find_definitions, collect_imported_attrs=collect_imported_attrs)
     visitor.visit(ast.parse(code))
     if check_internal_scopes:
         visitor.visit_internal_scopes()
@@ -246,10 +267,11 @@ def parse_module(
         undefined=visitor.undefined,
         defined=visitor.defined,
         import_map=visitor.import_map,
+        imported_attr_usages=visitor.imported_attr_usages,
     )
 
 
-def find_from_import(line: str) -> tuple[str, list[ImportedName]] | tuple[None, None]:
+def find_from_import(line: str) -> tuple[str, set[ImportedName]] | tuple[None, None]:
     """Checks if given line of python code contains from import statement.
 
     Args:
@@ -266,7 +288,7 @@ def find_from_import(line: str) -> tuple[str, list[ImportedName]] | tuple[None, 
     module_name = "." * node.level
     if node.module:
         module_name += node.module
-    imported_names = [ImportedName(name=name.name, alias=name.asname) for name in node.names]
+    imported_names = {ImportedName(name=name.name, alias=name.asname) for name in node.names}
     return module_name, imported_names
 
 
