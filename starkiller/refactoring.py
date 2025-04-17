@@ -37,6 +37,7 @@ def get_rename_edits(source: str, rename_map: dict[str, str]) -> Generator[tuple
     for old_name, nodes in root.get_used_names().items():
         if old_name in rename_map:
             for node in nodes:
+                # Ignore imports
                 if node.search_ancestor("import_as_names", "import_from", "import_name"):
                     continue
 
