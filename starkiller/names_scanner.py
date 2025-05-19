@@ -1,30 +1,16 @@
 # ruff: noqa: N802
-"""Module source code AST parsing."""
+"""Names scanner.
+
+Scans the code scope for definitions and usages (including attribute usages).
+"""
 
 import ast
 from collections.abc import Generator
 from contextlib import contextmanager
 from dataclasses import dataclass
 
+from starkiller.models import ImportedName
 from starkiller.utils import BUILTIN_FUNCTIONS
-
-
-@dataclass(frozen=True)
-class ImportedName:
-    """Imported name structure."""
-
-    name: str
-    alias: str | None = None
-
-
-@dataclass(frozen=True)
-class ModuleNames:
-    """Names used in a module."""
-
-    undefined: set[str]
-    defined: set[str]
-    import_map: dict[str, set[ImportedName]]
-    imported_attr_usages: dict[str, set[str]]
 
 
 @dataclass(frozen=True)
@@ -34,7 +20,7 @@ class _LocalScope:
     args: list[str] | None = None
 
 
-class _ScopeVisitor(ast.NodeVisitor):
+class _NamesScanner(ast.NodeVisitor):
     def __init__(self, find_definitions: set[str] | None = None, *, collect_imported_attrs: bool = False) -> None:
         super().__init__()
 
@@ -68,7 +54,7 @@ class _ScopeVisitor(ast.NodeVisitor):
 
     def visit_internal_scopes(self) -> None:
         for scope in self._internal_scopes:
-            scope_visitor = _ScopeVisitor(find_definitions=None, collect_imported_attrs=self._collect_imported_attrs)
+            scope_visitor = _NamesScanner(find_definitions=None, collect_imported_attrs=self._collect_imported_attrs)
 
             # Known names
             scope_visitor._defined = self._defined.copy()
@@ -84,7 +70,12 @@ class _ScopeVisitor(ast.NodeVisitor):
 
             # Update upper scope undefined names set
             self._undefined.update(scope_visitor.undefined)
-            self._attr_usages.update(scope_visitor.imported_attr_usages)
+
+            # Update attribute usages set, excluding names defined in the internal scope
+            external_names_attr_usages = {
+                a: v for a, v in scope_visitor.attr_usages.items() if a not in scope_visitor._defined
+            }
+            self._attr_usages.update(external_names_attr_usages)
 
     @property
     def defined(self) -> set[str]:
@@ -103,8 +94,8 @@ class _ScopeVisitor(ast.NodeVisitor):
         return self._import_map.copy()
 
     @property
-    def imported_attr_usages(self) -> dict[str, set[str]]:
-        return {module: attrs for module, attrs in self._attr_usages.items() if module in self._imported}
+    def attr_usages(self) -> dict[str, set[str]]:
+        return self._attr_usages.copy()
 
     @contextmanager
     def definition_context(self) -> Generator[None]:

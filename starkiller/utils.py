@@ -1,4 +1,5 @@
 """Some stuff for internal use."""
+
 import builtins
 import inspect
 import pathlib

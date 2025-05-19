@@ -1,30 +1,19 @@
 """Utilities to parse Python code."""
 
+import ast
 import itertools
-from dataclasses import dataclass
 
 import parso
 
-from starkiller.refactoring import EditPosition, EditRange
-from starkiller.visitor import ImportedName, ModuleNames, _ScopeVisitor, ast
-
-
-@dataclass(frozen=True)
-class ImportFromStatement:
-    """`from <module> import <names>` statement."""
-
-    module: str
-    import_range: EditRange
-    is_star: bool = False
-    names: set[ImportedName] | None = None
-
-
-@dataclass(frozen=True)
-class ImportModulesStatement:
-    """`import <module>` statement."""
-
-    modules: set[ImportedName]
-    import_range: EditRange
+from starkiller.models import (
+    EditPosition,
+    EditRange,
+    ImportedName,
+    ImportFromStatement,
+    ImportModulesStatement,
+    ModuleNames,
+)
+from starkiller.names_scanner import _NamesScanner
 
 
 def parse_module(
@@ -45,7 +34,7 @@ def parse_module(
     Returns:
         ModuleNames object.
     """
-    visitor = _ScopeVisitor(find_definitions=find_definitions, collect_imported_attrs=collect_imported_attrs)
+    visitor = _NamesScanner(find_definitions=find_definitions, collect_imported_attrs=collect_imported_attrs)
     visitor.visit(ast.parse(code))
     if check_internal_scopes:
         visitor.visit_internal_scopes()
@@ -53,7 +42,7 @@ def parse_module(
         undefined=visitor.undefined,
         defined=visitor.defined,
         import_map=visitor.import_map,
-        imported_attr_usages=visitor.imported_attr_usages,
+        attr_usages=visitor.attr_usages,
     )
 
 
@@ -98,41 +87,3 @@ def find_imports(source: str, line_no: int) -> ImportModulesStatement | ImportFr
         return ImportModulesStatement(set(imported_modules), edit_range)
 
     return None
-
-
-def find_from_import(line: str) -> tuple[str, set[ImportedName]] | tuple[None, None]:
-    """Checks if given line of code contains from import statement.
-
-    Args:
-        line: Line of code to check.
-
-    Returns:
-        Module name and ImportedName list or `(None, None)`.
-    """
-    body = ast.parse(line).body
-    if len(body) == 0 or not isinstance(body[0], ast.ImportFrom):
-        return None, None
-
-    node = body[0]
-    module_name = "." * node.level
-    if node.module:
-        module_name += node.module
-    imported_names = {ImportedName(name=name.name, alias=name.asname) for name in node.names}
-    return module_name, imported_names
-
-
-def find_import(line: str) -> list[ImportedName] | None:
-    """Checks if given line of code contains import statement.
-
-    Args:
-        line: Line of code to check.
-
-    Returns:
-        ImportedName or None.
-    """
-    body = ast.parse(line).body
-    if len(body) == 0 or not isinstance(body[0], ast.Import):
-        return None
-
-    node = body[0]
-    return [ImportedName(name=name.name, alias=name.asname) for name in node.names]

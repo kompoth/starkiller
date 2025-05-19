@@ -2,25 +2,10 @@
 """Utilities to change Python code."""
 
 from collections.abc import Generator
-from dataclasses import dataclass
 
 import parso
 
-
-@dataclass
-class EditPosition:
-    """Coordinate in source."""
-
-    line: int
-    char: int
-
-
-@dataclass
-class EditRange:
-    """Coordinates of source change."""
-
-    start: EditPosition
-    end: EditPosition
+from starkiller.models import EditPosition, EditRange
 
 
 def get_rename_edits(source: str, rename_map: dict[str, str]) -> Generator[tuple[EditRange, str]]:
@@ -54,7 +39,8 @@ def get_rename_edits(source: str, rename_map: dict[str, str]) -> Generator[tuple
                 yield (edit_range, rename_map[old_name])
 
 
-def get_attrs_as_names_edits(source: str, name: str, attrs: set[str]):
+def get_attrs_as_names_edits(source: str, name: str, attrs: set[str]) -> Generator[tuple[EditRange, str]]:
+    # TODO: wtf is that?
     root = parso.parse(source)
     nodes = root.get_used_names().get(name, [])
     for node in nodes:

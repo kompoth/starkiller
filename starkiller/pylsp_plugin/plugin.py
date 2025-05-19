@@ -148,7 +148,7 @@ def get_ca_for_module_import(
         return []
 
     module = imported_modules.pop()
-    used_attrs = parsed.imported_attr_usages.get(module.alias or module.name)
+    used_attrs = parsed.attr_usages.get(module.alias or module.name)
     if not used_attrs:
         return [get_ca_remove_unnecessary_import(document, import_range)]
 

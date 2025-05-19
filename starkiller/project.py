@@ -7,7 +7,8 @@ from pathlib import Path
 # TODO: generate Jedi stub files
 from jedi import create_environment, find_system_environments  # type: ignore
 
-from starkiller.parsing import ImportedName, parse_module
+from starkiller.models import ImportedName
+from starkiller.parsing import parse_module
 from starkiller.utils import BUILTIN_FUNCTIONS, BUILTIN_MODULES, STUB_STDLIB_SUBDIRS
 
 MODULE_EXTENSIONS = (".py", ".pyi")

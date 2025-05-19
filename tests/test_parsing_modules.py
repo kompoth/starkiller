@@ -89,4 +89,4 @@ def test_find_definitions() -> None:
 
 def test_find_attrs() -> None:
     results = parse_module(TEST_CASE, check_internal_scopes=True, collect_imported_attrs=True)
-    assert results.imported_attr_usages == EXPECTED_ATTRS
+    assert results.attr_usages == EXPECTED_ATTRS
