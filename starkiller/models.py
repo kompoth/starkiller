@@ -1,6 +1,8 @@
 """Data structures."""
 
+from ast import stmt
 from dataclasses import dataclass
+from pathlib import Path
 
 
 @dataclass(frozen=True)
@@ -53,3 +55,24 @@ class ImportModulesStatement:
 
     modules: set[ImportedName]
     import_range: EditRange
+
+
+@dataclass
+class Module:
+    """Universal module type."""
+    name: str
+    fullname: str
+    path: Path
+    submodule_paths: list[Path] | None = None
+
+    @property
+    def package(self) -> bool:
+        """Whether is module is a package."""
+        return bool(self.submodule_paths)
+
+
+@dataclass(frozen=True)
+class _LocalScope:
+    name: str
+    body: list[stmt]
+    args: list[str] | None = None

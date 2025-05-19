@@ -7,17 +7,9 @@ Scans the code scope for definitions and usages (including attribute usages).
 import ast
 from collections.abc import Generator
 from contextlib import contextmanager
-from dataclasses import dataclass
 
-from starkiller.models import ImportedName
+from starkiller.models import ImportedName, _LocalScope
 from starkiller.utils import BUILTIN_FUNCTIONS
-
-
-@dataclass(frozen=True)
-class _LocalScope:
-    name: str
-    body: list[ast.stmt]
-    args: list[str] | None = None
 
 
 class _NamesScanner(ast.NodeVisitor):

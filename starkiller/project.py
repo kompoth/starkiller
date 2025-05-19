@@ -1,31 +1,16 @@
 """A class to work with imports in a Python project."""
 
-from dataclasses import dataclass
 from importlib.util import spec_from_file_location
 from pathlib import Path
 
 # TODO: generate Jedi stub files
 from jedi import create_environment, find_system_environments  # type: ignore
 
-from starkiller.models import ImportedName
+from starkiller.models import ImportedName, Module
 from starkiller.parsing import parse_module
 from starkiller.utils import BUILTIN_FUNCTIONS, BUILTIN_MODULES, STUB_STDLIB_SUBDIRS
 
 MODULE_EXTENSIONS = (".py", ".pyi")
-
-
-@dataclass
-class Module:
-    """Universal module type."""
-    name: str
-    fullname: str
-    path: Path
-    submodule_paths: list[Path] | None = None
-
-    @property
-    def package(self) -> bool:
-        """Whether is module is a package."""
-        return bool(self.submodule_paths)
 
 
 def _search_for_module(module_name: str, paths: list[Path]) -> Module | None:
