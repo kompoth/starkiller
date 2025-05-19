@@ -1,7 +1,7 @@
 [project]
 name = "starkiller"
-version = "0.1.1"
-description = "Python imports refactoring"
+version = "0.1.2"
+description = "Import refactoring package and pylsp plugin"
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
