@@ -61,7 +61,7 @@ import os, sys
 ```
 
 This is hard to understand which import the user wants to fix here: `os`, `sys` or both. Splitting imports to different
-lines will help, but the user has to do it manually or with some other tool like [Ruff](https://docs.astral.sh/ruff/).
+lines would help, but the user has to do it manually or with some other tool like [Ruff](https://docs.astral.sh/ruff/).
 Starkiller is not a code formatter and should not handle import splitting.
 
 At some point this might change. For example, a separate Code Action for each package could be suggested.
