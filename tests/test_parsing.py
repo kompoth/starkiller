@@ -19,19 +19,33 @@ if __name__ == "__main__":
 
 
 @pytest.mark.parametrize(
-    ("test_case", "row", "expected"),
+    ("test_case", "row", "expected_from", "expected_names"),
     [
-        pytest.param(TEST_CASE, 2, ImportFromStatement(module="os", names={ImportedName("walk")})),
-        pytest.param(TEST_CASE, 3, ImportFromStatement(module="time", is_star=True)),
-        pytest.param(TEST_CASE, 4, ImportModulesStatement(modules={ImportedName("sys", "sys_module")})),
-        pytest.param(
-            TEST_CASE,
-            5,
-            ImportFromStatement(module="asyncio", names={ImportedName("gather"), ImportedName("run", "arun")}),
-        ),
-        pytest.param(TEST_CASE, 9, ImportModulesStatement(modules={ImportedName("asyncio.taskgroup")})),
-        pytest.param(TEST_CASE, 10, ImportModulesStatement(modules={ImportedName("asyncio.taskgroup", "tg_module")})),
+        pytest.param(TEST_CASE, 2, "os", [ImportedName("walk")]),
+        pytest.param(TEST_CASE, 3, "time", None),
+        pytest.param(TEST_CASE, 5, "asyncio", [ImportedName("gather"), ImportedName("run", "arun")]),
     ],
 )
-def test_find_from_import(test_case: str, row: int, expected: ImportFromStatement | ImportModulesStatement) -> None:
-    assert find_imports(test_case, row) == expected
+def test_find_from_import(test_case: str, row: int, expected_from: str, expected_names: list[str] | None) -> None:
+    found = find_imports(test_case, row)
+    assert isinstance(found, ImportFromStatement)
+    assert found.module == expected_from
+    if expected_names is None:
+        assert found.is_star
+    else:
+        assert found.names == set(expected_names)
+
+
+@pytest.mark.parametrize(
+    ("test_case", "row", "expected_modules"),
+    [
+        pytest.param(TEST_CASE, 4, [ImportedName("sys", "sys_module")]),
+        pytest.param(TEST_CASE, 9, [ImportedName("asyncio.taskgroup")]),
+        pytest.param(TEST_CASE, 10, [ImportedName("asyncio.taskgroup", "tg_module")]),
+        pytest.param(TEST_CASE, 13, [ImportedName("asyncio")]),
+    ],
+)
+def test_find_import(test_case: str, row: int, expected_modules: list[str]) -> None:
+    found = find_imports(test_case, row)
+    assert isinstance(found, ImportModulesStatement)
+    assert found.modules == set(expected_modules)
