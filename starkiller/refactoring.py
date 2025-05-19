@@ -1,4 +1,3 @@
-# ruff: noqa: N802
 """Utilities to change Python code."""
 
 from collections.abc import Generator
