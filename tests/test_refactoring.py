@@ -1,6 +1,6 @@
 from parso import split_lines
 
-from starkiller.refactoring import EditRange, get_attrs_as_names_edits, get_rename_edits
+from starkiller.refactoring import EditRange, rename, strip_base_name
 
 RENAME_TEST_CASE = """
 from numpy import ndarray, dot
@@ -47,10 +47,10 @@ def apply_inline_changes(source: str, changes: list[tuple[EditRange, str]]) -> s
 
 def test_rename() -> None:
     rename_map = {"ndarray": "np.ndarray", "dot": "np.dot"}
-    changes = list(get_rename_edits(RENAME_TEST_CASE, rename_map))
+    changes = list(rename(RENAME_TEST_CASE, rename_map))
     assert apply_inline_changes(RENAME_TEST_CASE, changes) == RENAME_EXPECTED_RESULT
 
 
 def test_attrs_as_names() -> None:
-    changes = list(get_attrs_as_names_edits(ATTRS_TEST_CASE, "np", {"ndarray", "dot"}))
+    changes = list(strip_base_name(ATTRS_TEST_CASE, "np", {"ndarray", "dot"}))
     assert apply_inline_changes(ATTRS_TEST_CASE, changes) == ATTRS_EXPECTED_RESULT

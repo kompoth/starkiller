@@ -68,18 +68,18 @@ def find_imports(source: str, line_no: int) -> ImportModulesStatement | ImportFr
     edit_range = EditRange(EditPosition(*node.start_pos), EditPosition(*node.end_pos))
 
     if isinstance(node, parso.python.tree.ImportFrom):
-        modules = [n.value for n in node.get_from_names()]
+        module_path = [n.value for n in node.get_from_names()]
+        module = ".".join(module_path)
         if node.is_star_import():
-            return ImportFromStatement(modules[-1], edit_range, is_star=True)
+            return ImportFromStatement(module, edit_range, is_star=True)
 
         imported_names = itertools.starmap(
             lambda n, a: ImportedName(n.value, None if not a else a.value),
             node._as_name_tuples(),  # noqa: SLF001
         )
-        return ImportFromStatement(modules[-1], edit_range, names=set(imported_names))
+        return ImportFromStatement(module, edit_range, names=set(imported_names))
 
     if isinstance(node, parso.python.tree.ImportName):
-        modules = [".".join([n.value for n in path]) for path in node.get_paths()]
         imported_modules: list[ImportedName] = []
         for path, alias in node._dotted_as_names():  # noqa: SLF001
             module = ".".join(p.value for p in path)

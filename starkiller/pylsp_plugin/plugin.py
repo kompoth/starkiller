@@ -17,7 +17,7 @@ from pylsp.workspace import Document, Workspace  # type: ignore
 
 from starkiller.parsing import ImportedName, ImportFromStatement, ImportModulesStatement, find_imports, parse_module
 from starkiller.project import StarkillerProject
-from starkiller.refactoring import get_attrs_as_names_edits, get_rename_edits
+from starkiller.refactoring import rename, strip_base_name
 
 log = logging.getLogger(__name__)
 converter = get_converter()
@@ -154,7 +154,7 @@ def get_ca_for_module_import(
 
     text_edits = get_edits_replace_module_w_from(module.name, used_attrs, import_range)
 
-    for edit_range, new_value in get_attrs_as_names_edits(document.source, module.alias or module.name, used_attrs):
+    for edit_range, new_value in strip_base_name(document.source, module.alias or module.name, used_attrs):
         rename_range = Range(
             start=Position(line=edit_range.start.line, character=edit_range.start.char),
             end=Position(line=edit_range.end.line, character=edit_range.end.char),
@@ -203,7 +203,7 @@ def get_edits_replace_from_w_module(
     text_edits = [TextEdit(range=import_range, new_text=new_text)]
 
     rename_map = {n.alias or n.name: f"{from_module}.{n.name}" for n in names}
-    for edit_range, new_value in get_rename_edits(source, rename_map):
+    for edit_range, new_value in rename(source, rename_map):
         rename_range = Range(
             start=Position(line=edit_range.start.line, character=edit_range.start.char),
             end=Position(line=edit_range.end.line, character=edit_range.end.char),

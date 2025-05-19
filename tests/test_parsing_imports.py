@@ -12,6 +12,7 @@ from asyncio import (
 )
 import asyncio.taskgroup
 import asyncio.taskgroup as tg_module
+from asyncio.taskgroup import TaskGroup
 
 if __name__ == "__main__":
     import asyncio
@@ -24,6 +25,7 @@ if __name__ == "__main__":
         pytest.param(TEST_CASE, 2, "os", [ImportedName("walk")]),
         pytest.param(TEST_CASE, 3, "time", None),
         pytest.param(TEST_CASE, 5, "asyncio", [ImportedName("gather"), ImportedName("run", "arun")]),
+        pytest.param(TEST_CASE, 11, "asyncio.taskgroup", [ImportedName("TaskGroup")]),
     ],
 )
 def test_find_from_import(test_case: str, row: int, expected_from: str, expected_names: list[str] | None) -> None:
@@ -42,7 +44,7 @@ def test_find_from_import(test_case: str, row: int, expected_from: str, expected
         pytest.param(TEST_CASE, 4, [ImportedName("sys", "sys_module")]),
         pytest.param(TEST_CASE, 9, [ImportedName("asyncio.taskgroup")]),
         pytest.param(TEST_CASE, 10, [ImportedName("asyncio.taskgroup", "tg_module")]),
-        pytest.param(TEST_CASE, 13, [ImportedName("asyncio")]),
+        pytest.param(TEST_CASE, 14, [ImportedName("asyncio")]),
     ],
 )
 def test_find_import(test_case: str, row: int, expected_modules: list[str]) -> None:

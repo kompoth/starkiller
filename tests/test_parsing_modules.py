@@ -82,7 +82,7 @@ def test_parse_module() -> None:
 
 
 def test_find_definitions() -> None:
-    look_for = {"some_coroutine", "SOME_CONSTANT", "name_from_other module"}
+    look_for = {"some_coroutine", "SOME_CONSTANT", "there_is_no_such_name", "some_db_handler"}
     results = parse_module(TEST_CASE, find_definitions=look_for)
     assert results.defined == (look_for & EXPECTED_DEFINED)
 
