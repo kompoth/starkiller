@@ -1,12 +1,29 @@
 [project]
 name = "starkiller"
-version = "0.1.2"
+version = "0.1.3"
 description = "Import refactoring package and pylsp plugin"
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
     "jedi>=0.19.2",
 ]
+classifiers = [
+    "Operating System :: OS Independent",
+    "Programming Language :: Python",
+    "Programming Language :: Python :: 3 :: Only",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Intended Audience :: Developers",
+    "Topic :: Software Development",
+    "Topic :: Software Development :: Code Generators",
+    "Typing :: Typed",
+    "Environment :: Plugins",
+    "Development Status :: 3 - Alpha",
+    "License :: OSI Approved :: MIT License",
+]
+
+[project.urls]
+Homepage = "https://github.com/kompoth/starkiller"
 
 [project.optional-dependencies]
 pylsp = [
@@ -20,6 +37,10 @@ dev = [
     "pytest>=8.3.5",
     "pytest-virtualenv>=1.8.1",
 ]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
 
 [project.entry-points.pylsp]
 starkiller = "starkiller.pylsp_plugin.plugin"
@@ -56,3 +77,9 @@ convention = "google"
 line_length = 120
 multi_line_output = 3
 split_on_trailing_comma = true
+
+[[tool.uv.index]]
+name = "testpypi"
+url = "https://test.pypi.org/simple/"
+publish-url = "https://test.pypi.org/legacy/"
+explicit = true
