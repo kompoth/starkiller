@@ -1,5 +1,7 @@
 # Starkiller
 
+[![PyPI - Version](https://img.shields.io/pypi/v/starkiller)](https://pypi.org/project/starkiller/)
+![PyPI - Python Version](https://img.shields.io/pypi/pyversions/starkiller)
 [![CI status](https://github.com/kompoth/starkiller/actions/workflows/ci.yaml/badge.svg)](https://github.com/kompoth/starkiller/actions)
 
 **Work in progress**
