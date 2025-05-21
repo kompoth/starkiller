@@ -3,7 +3,7 @@ name = "starkiller"
 version = "0.1.3"
 description = "Import refactoring package and pylsp plugin"
 readme = "README.md"
-requires-python = ">=3.10"
+requires-python = ">=3.12"
 dependencies = [
     "jedi>=0.19.2",
 ]
@@ -11,8 +11,6 @@ classifiers = [
     "Operating System :: OS Independent",
     "Programming Language :: Python",
     "Programming Language :: Python :: 3 :: Only",
-    "Programming Language :: Python :: 3.10",
-    "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
     "Programming Language :: Python :: 3.13",
     "Intended Audience :: Developers",
