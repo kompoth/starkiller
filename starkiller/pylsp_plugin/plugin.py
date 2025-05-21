@@ -1,6 +1,7 @@
 import dataclasses
 import logging
 import pathlib
+from typing import Any
 
 from lsprotocol.converters import get_converter  # type: ignore
 from lsprotocol.types import (  # type: ignore
@@ -40,7 +41,7 @@ class PluginSettings:
 
 
 @hookimpl
-def pylsp_settings() -> dict:
+def pylsp_settings() -> dict[str, Any]:
     return dataclasses.asdict(PluginSettings())
 
 
@@ -49,9 +50,9 @@ def pylsp_code_actions(
     config: Config,
     workspace: Workspace,
     document: Document,
-    range: dict,  # noqa: A002
-    context: dict,  # noqa: ARG001
-) -> list[dict]:
+    range: dict[str, Any],  # noqa: A002
+    context: dict[str, Any],  # noqa: ARG001
+) -> list[dict[str, Any]]:
     code_actions: list[CodeAction] = []
     project_path = pathlib.Path(workspace.root_path).resolve()
     env_path = project_path / ".venv"
@@ -94,7 +95,8 @@ def pylsp_code_actions(
     elif isinstance(import_statement, ImportModulesStatement):
         code_actions.extend(get_ca_for_module_import(document, import_statement.modules, import_range))
 
-    return converter.unstructure(code_actions)
+    result: list[dict[str, Any]] = converter.unstructure(code_actions)
+    return result
 
 
 def get_ca_for_star_import(
@@ -102,7 +104,7 @@ def get_ca_for_star_import(
     project: StarkillerProject,
     from_module: str,
     import_range: Range,
-    aliases: dict,
+    aliases: dict[str, Any],
 ) -> list[CodeAction]:
     undefined_names = parse_module(document.source, check_internal_scopes=True).undefined
     if not undefined_names:
@@ -171,7 +173,11 @@ def get_ca_for_module_import(
 
 
 def get_ca_for_from_import(
-    document: Document, from_module: str, imported_names: set[ImportedName], import_range: Range, aliases: dict
+    document: Document,
+    from_module: str,
+    imported_names: set[ImportedName],
+    import_range: Range,
+    aliases: dict[str, Any],
 ) -> list[CodeAction]:
     text_edits = get_edits_replace_from_w_module(document.source, from_module, imported_names, import_range, aliases)
     return [
