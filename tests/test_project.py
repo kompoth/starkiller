@@ -5,9 +5,13 @@ from starkiller.project import StarkillerProject
 
 def test_asyncio_definitions(virtualenv: VirtualEnv) -> None:
     project = StarkillerProject(virtualenv.workspace)
-    look_for = {"gather", "run", "TaskGroup"}
-    names = project.find_definitions("asyncio", look_for)
-    assert names == look_for
+    find_in_asyncio = {"gather", "run", "TaskGroup"}
+    names = project.find_definitions("asyncio", find_in_asyncio)
+    assert names == find_in_asyncio
+
+    find_in_asyncio_taskgroup = {"TaskGroup"}
+    names = project.find_definitions("asyncio", find_in_asyncio_taskgroup)
+    assert names == find_in_asyncio_taskgroup
 
 
 def test_time_definitions(virtualenv: VirtualEnv) -> None:

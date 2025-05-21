@@ -13,7 +13,7 @@ SOME_CONSTANT = "127.0.0.1"
 
 @undefined_decorator
 def some_function(arg1: int, arg2: abc_alias = undefined_default) -> tuple[name_from_same_package, int, int]:
-    internal_scope_var = arg2 * arg1
+    internal_scope_var = arg2 * arg1 * np.dot(12, 34)
     return internal_scope_var.lower(), 123, 456
 
 print(internal_scope_var)
@@ -68,6 +68,10 @@ EXPECTED_UNDEFINED = {
     "UndefinedClass",
     "unknown_value_in_class_init",
 }
+EXPECTED_ATTRS = {
+    "np": {"dot"},
+    "asyncio": {"run"},
+}
 
 
 def test_parse_module() -> None:
@@ -78,6 +82,11 @@ def test_parse_module() -> None:
 
 
 def test_find_definitions() -> None:
-    look_for = {"some_coroutine", "SOME_CONSTANT", "name_from_other module"}
+    look_for = {"some_coroutine", "SOME_CONSTANT", "there_is_no_such_name", "some_db_handler"}
     results = parse_module(TEST_CASE, find_definitions=look_for)
     assert results.defined == (look_for & EXPECTED_DEFINED)
+
+
+def test_find_attrs() -> None:
+    results = parse_module(TEST_CASE, check_internal_scopes=True, collect_imported_attrs=True)
+    assert results.attr_usages == EXPECTED_ATTRS

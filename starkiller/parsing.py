@@ -1,225 +1,19 @@
-# ruff: noqa: N802
 """Utilities to parse Python code."""
 
 import ast
-from collections.abc import Generator
-from contextlib import contextmanager
-from dataclasses import dataclass
+import itertools
 
-from starkiller.utils import BUILTIN_FUNCTIONS
+import parso
 
-
-@dataclass(frozen=True)
-class ImportedName:
-    """Imported name structure."""
-
-    name: str
-    alias: str | None = None
-
-
-@dataclass(frozen=True)
-class ModuleNames:
-    """Names used in a module."""
-
-    undefined: set[str]
-    defined: set[str]
-    import_map: dict[str, set[ImportedName]]
-
-
-@dataclass(frozen=True)
-class _LocalScope:
-    name: str
-    body: list[ast.stmt]
-    args: list[str] | None = None
-
-
-class _ScopeVisitor(ast.NodeVisitor):
-    def __init__(self, find_definitions: set[str] | None = None) -> None:
-        super().__init__()
-        # Names that were used but never initialized in this module
-        self._undefined: set[str] = set()
-        # Names initialized in this module
-        self._defined: set[str] = set()
-        # Names imported from elsewhere
-        self._import_map: dict[str, set[ImportedName]] = {}
-        self._imported: set[str] = set()
-        # Stop iteration on finding all of these names
-        self._find_definitions = None if find_definitions is None else dict.fromkeys(find_definitions, False)
-        # Internal scopes must be checked after visiting the top level
-        self._internal_scopes: list[_LocalScope] = []
-
-        # How to treat ast.Name: if True, this might be a definition
-        self._in_definition_context = False
-
-    def visit(self, node: ast.AST) -> None:
-        if self._find_definitions and all(self._find_definitions.values()):
-            return
-        super().visit(node)
-
-    def visit_internal_scopes(self) -> None:
-        for scope in self._internal_scopes:
-            scope_visitor = _ScopeVisitor(find_definitions=None)
-
-            # Known names
-            scope_visitor._defined = self._defined.copy()
-            if scope.args:
-                scope_visitor._defined.update(scope.args)
-            scope_visitor._import_map = self._import_map.copy()
-
-            # Visit scope body and all internal scopes
-            for scope_node in scope.body:
-                scope_visitor.visit(scope_node)
-            scope_visitor.visit_internal_scopes()
-
-            # Update upper scope undefined names set
-            self._undefined.update(scope_visitor.undefined)
-
-    @property
-    def defined(self) -> set[str]:
-        # If we were looking for specific names, return only names from that list
-        if self._find_definitions is not None:
-            found_names = {name for name, found in self._find_definitions.items() if found}
-            return found_names & self._defined
-        return self._defined.copy()
-
-    @property
-    def undefined(self) -> set[str]:
-        return self._undefined.copy()
-
-    @property
-    def import_map(self) -> dict[str, set[ImportedName]]:
-        return self._import_map.copy()
-
-    @contextmanager
-    def definition_context(self) -> Generator[None]:
-        # This is not thread safe! Consider using thead local data to store definition context state.
-        # Context manager is used in this class to control new names treatment: either to record them as definitions or
-        # as possible usages of undefined names.
-        self._in_definition_context = True
-        yield
-        self._in_definition_context = False
-
-    def record_import_from_module(self, module_name: str, name: str, alias: str | None = None) -> None:
-        imported_name = ImportedName(name, alias)
-        self._import_map.setdefault(module_name, set())
-        self._import_map[module_name].add(imported_name)
-        self._imported.add(alias or name)
-
-    def _record_definition(self, name: str) -> None:
-        # Make sure the name wasn't used with no initialization
-        if name not in (self._undefined | self._imported):
-            self._defined.add(name)
-
-            # If searching for definitions, cross out already found
-            if self._find_definitions is not None and name in self._find_definitions:
-                self._find_definitions[name] = True
-
-    def _record_undefined_name(self, name: str) -> None:
-        # Record only uninitialised uses
-        if name not in (self._defined | self._imported | BUILTIN_FUNCTIONS):
-            self._undefined.add(name)
-
-    def record_name(self, name: str) -> None:
-        if self._in_definition_context:
-            self._record_definition(name)
-        else:
-            self._record_undefined_name(name)
-
-    def visit_Name(self, node: ast.Name) -> None:
-        self.record_name(node.id)
-
-    def visit_Import(self, node: ast.Import) -> None:
-        for name in node.names:
-            self.record_import_from_module(
-                module_name=name.name,
-                name=name.name,
-                alias=name.asname,
-            )
-
-    def visit_ImportFrom(self, node: ast.ImportFrom) -> None:
-        module_name = "." * node.level
-        if node.module:
-            module_name += node.module
-
-        for name in node.names:
-            self.record_import_from_module(
-                module_name=module_name,
-                name=name.name,
-                alias=name.asname,
-            )
-
-    def visit_Assign(self, node: ast.Assign) -> None:
-        with self.definition_context():
-            for target in node.targets:
-                self.visit(target)
-        self.visit(node.value)
-
-    def visit_Call(self, node: ast.Call) -> None:
-        # Called a function, not an attribute method
-        if isinstance(node.func, ast.Name):
-            self.visit(node.func)
-
-        # Values passed as arguments
-        for arg in node.args:
-            self.visit(arg)
-        for kwarg in node.keywords:
-            self.visit(kwarg.value)
-
-    def visit_Attribute(self, node: ast.Attribute) -> None:
-        owner = node.value
-        if isinstance(owner, ast.Attribute | ast.Call | ast.Name):
-            self.visit(owner)
-
-    def visit_ClassDef(self, node: ast.ClassDef) -> None:
-        self._record_definition(node.name)
-
-        for decorator in node.decorator_list:
-            self.visit(decorator)
-        for base in node.bases:
-            self.visit(base)
-        for kwarg in node.keywords:
-            self.visit(kwarg.value)
-        # TODO: type_params
-
-        self._internal_scopes.append(
-            _LocalScope(
-                name=node.name,
-                body=node.body.copy(),
-                args=[],
-            ),
-        )
-
-    def _visit_callable(self, node: ast.FunctionDef | ast.AsyncFunctionDef) -> None:
-        with self.definition_context():
-            self.record_name(node.name)
-
-        args = node.args.posonlyargs + node.args.args + node.args.kwonlyargs
-
-        # Check for no inits
-        for decorator in node.decorator_list:
-            self.visit(decorator)
-        for arg in args:
-            if arg.annotation:
-                self.visit(arg.annotation)
-        for default in node.args.defaults + node.args.kw_defaults:
-            if default is not None:
-                self.visit(default)
-        if node.returns:
-            self.visit(node.returns)
-
-        self._internal_scopes.append(
-            _LocalScope(
-                name=node.name,
-                body=node.body.copy(),
-                args=[arg.arg for arg in args],
-            ),
-        )
-
-    def visit_FunctionDef(self, node: ast.FunctionDef) -> None:
-        self._visit_callable(node)
-
-    def visit_AsyncFunctionDef(self, node: ast.AsyncFunctionDef) -> None:
-        self._visit_callable(node)
+from starkiller.models import (
+    EditPosition,
+    EditRange,
+    ImportedName,
+    ImportFromStatement,
+    ImportModulesStatement,
+    ModuleNames,
+)
+from starkiller.names_scanner import _NamesScanner
 
 
 def parse_module(
@@ -227,6 +21,7 @@ def parse_module(
     find_definitions: set[str] | None = None,
     *,
     check_internal_scopes: bool = False,
+    collect_imported_attrs: bool = False,
 ) -> ModuleNames:
     """Parse Python source and find all definitions, undefined symbols usages and imported names.
 
@@ -234,11 +29,12 @@ def parse_module(
         code: Source code to be parsed.
         find_definitions: Optional set of definitions to look for.
         check_internal_scopes: If False, won't parse function and classes definitions.
+        collect_imported_attrs: If True, will record attribute usages of ast.Name nodes.
 
     Returns:
         ModuleNames object.
     """
-    visitor = _ScopeVisitor(find_definitions=find_definitions)
+    visitor = _NamesScanner(find_definitions=find_definitions, collect_imported_attrs=collect_imported_attrs)
     visitor.visit(ast.parse(code))
     if check_internal_scopes:
         visitor.visit_internal_scopes()
@@ -246,42 +42,48 @@ def parse_module(
         undefined=visitor.undefined,
         defined=visitor.defined,
         import_map=visitor.import_map,
+        attr_usages=visitor.attr_usages,
     )
 
 
-def find_from_import(line: str) -> tuple[str, list[ImportedName]] | tuple[None, None]:
+def find_imports(source: str, line_no: int) -> ImportModulesStatement | ImportFromStatement | None:
     """Checks if given line of python code contains from import statement.
 
     Args:
-        line: Line of code to check.
+        source: Source code to check.
+        line_no: Line number containing possible import statement.
 
     Returns:
         Module name and ImportedName list or `(None, None)`.
     """
-    body = ast.parse(line).body
-    if len(body) == 0 or not isinstance(body[0], ast.ImportFrom):
-        return None, None
+    root = parso.parse(source)
+    node = root.get_leaf_for_position((line_no, 1), include_prefixes=True)
 
-    node = body[0]
-    module_name = "." * node.level
-    if node.module:
-        module_name += node.module
-    imported_names = [ImportedName(name=name.name, alias=name.asname) for name in node.names]
-    return module_name, imported_names
+    while node is not None and node.type not in {"import_from", "import_name"}:
+        node = node.parent
 
-
-def find_import(line: str) -> list[ImportedName] | None:
-    """Checks if given line of python code contains import statement.
-
-    Args:
-        line: Line of code to check.
-
-    Returns:
-        ImportedName or None.
-    """
-    body = ast.parse(line).body
-    if len(body) == 0 or not isinstance(body[0], ast.Import):
+    if node is None:
         return None
 
-    node = body[0]
-    return [ImportedName(name=name.name, alias=name.asname) for name in node.names]
+    edit_range = EditRange(EditPosition(*node.start_pos), EditPosition(*node.end_pos))
+
+    if isinstance(node, parso.python.tree.ImportFrom):
+        module_path = [n.value for n in node.get_from_names()]
+        module = ".".join(module_path)
+        if node.is_star_import():
+            return ImportFromStatement(module, edit_range, is_star=True)
+
+        imported_names = itertools.starmap(
+            lambda n, a: ImportedName(n.value, None if not a else a.value),
+            node._as_name_tuples(),  # noqa: SLF001
+        )
+        return ImportFromStatement(module, edit_range, names=set(imported_names))
+
+    if isinstance(node, parso.python.tree.ImportName):
+        imported_modules: list[ImportedName] = []
+        for path, alias in node._dotted_as_names():  # noqa: SLF001
+            module = ".".join(p.value for p in path)
+            imported_modules.append(ImportedName(module, None if not alias else alias.value))
+        return ImportModulesStatement(set(imported_modules), edit_range)
+
+    return None
