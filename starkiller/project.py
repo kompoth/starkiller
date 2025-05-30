@@ -143,7 +143,7 @@ class StarkillerProject:
         inames: set[ImportedName],
         find_definitions: set[str]
     ) -> set[str]:
-        module_short_name = module_name.split(".")[-1]
+        module_short_name = module_name.rsplit(".", maxsplit=1)[-1]
         found_definitions: set[str] = set()
 
         is_star = any(iname.name == "*" for iname in inames)

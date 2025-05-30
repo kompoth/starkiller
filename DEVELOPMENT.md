@@ -1,23 +1,19 @@
 # Development
 
-## Installing plugin in development
+## Installing plugin to debug
 
-Build wheels and install them with a script:
+Build wheels and install them with a shortcut script:
 
 ```bash
-uv build
-./scripts/install.sh
+./scripts/install_plugin.sh
 ```
-
-The script takes the latest version from `dist/` (created by `uv build`) and injects it into `pylsp` environment.
 
 ## Publishing
 
-```bash
-UV_PUBLISH_TOKEN=<pypi token> ./script/publish.sh patch
-```
+Increment the package version, build the distribution and publish the latest version:
 
-This will  do the following:
-1. Increment the version in `pyproject.toml`, commit this change and tag it.
-2. Build the package distribution.
-3. Publish it to the PyPI.
+```bash
+bump-my-version bump patch 
+uv build
+UV_PUBLISH_TOKEN=<pypi token> uv publish
+```
